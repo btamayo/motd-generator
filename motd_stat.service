@@ -1,0 +1,16 @@
+[Unit]
+Description=dsnet motd stat service
+After=sshd.service
+After=getty.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=centos
+WorkingDirectory=/var/lib/motd_gen
+User=motd_gen
+ExecStart=/usr/bin/motd_stat.py
+
+[Install]
+WantedBy=multi-user.target
