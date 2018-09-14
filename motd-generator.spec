@@ -1,17 +1,23 @@
 Name:		motd-generator
-Version:	1.0.0
-Release:	1%{?dist}
+Version:	1.0.1
+%define build_timestamp %{lua: print(os.date("%Y%m%d"))}
+Release:	%{build_timestamp}
 Summary:	Custom message of the day (MOTD) designed to be as practical and informative as possible.
 BuildArch:	noarch
 
 License:	Unknown
 URL:		https://github.com/gonoph/motd-generator
-Source0:	https://github.com/gonoph/motd-generator/archive/v1.0.0.tar.gz
+Source0:	https://github.com/gonoph/motd-generator/archive/systemd.tar.gz
 
 Requires:	systemd
+Requires:	python
+Requires:	python(abi) = 2.7
+
+Provides:	motd
 
 %{?systemd_requires}
 BuildRequires:	systemd
+Buildrequires:	python
 
 %description
 This is a custom message of the day (MOTD) designed to be as practical and
@@ -25,7 +31,7 @@ identification.
 
 
 %prep
-%setup -q
+%autosetup -n %{name}-systemd
 
 # %build
 
