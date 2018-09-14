@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim: ts=4 sw=4 ai expandtab
 
 # Written in 2012 by Joe Tsai <joetsai@digital-static.net>
 #
@@ -27,6 +28,9 @@ import json
 import getpass
 import optparse
 import datetime
+import socket
+from StringIO import StringIO as SIO
+import traceback
 
 
 ################################################################################
@@ -91,6 +95,7 @@ NET_WARN_LEVEL      = 1048576.0 # Network usage in B/s
 CACHE_FREE = True # Is disk cache considered free memory or not?
 FULL_HOSTNAME = False # Use the full FQDN hostname
 STAT_PORT = 4004 # Port for the motd_netstat daemon
+STAT_HOST = 'localhost' # Host for the motd_netstat daemon
 NETTRAF_DEVICE = 'eth0' # The network device to monitor
 NETTRAF_INTERVAL = 600 # Time length in seconds to average the bandwidth over
 NETTRAF_WEIGHT = 1.0 # Perform linear moving average weight
@@ -106,6 +111,34 @@ info_list = []
 ################################################################################
 ############################### Helper functions ###############################
 ################################################################################
+
+def send_to_port(host, port, payload):
+    for res in socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM):
+        af, socktype, proto, canonname, sa = res
+        received = SIO()
+        s = socket.socket(af, socktype, proto)
+        try:
+            s.connect(sa)
+            s.send(payload)
+            for tmp in s.recv(1024):
+                received.write(tmp)
+            return received.getvalue()
+        finally:
+            s.close()
+            received.close()
+
+def extract_error():
+    """Extracts meaning error from a caught exception"""
+    info = sys.exc_info()
+    tb = traceback.extract_tb(info[2])[0]
+    _file = tb[0]
+    _line = tb[1]
+    return "%s(%s) at %s line %s" % (
+        colorize('exception',CYAN0),
+        colorize(str(info[1]), YELLOW0),
+        colorize(_file, YELLOW1),
+        colorize(_line, YELLOW1)
+        )
 
 def exec_cmd(cmd):
     """Execute a command and retrieve standard output"""
@@ -214,11 +247,22 @@ def display_lower_border():
     """Display the lower border"""
     display_border(LOWER_HALF_BLOCK)
 
+def _strip_list(l):
+    return map(lambda x: x.strip('\r\n\t "'), l)
 
 def display_welcome():
     """Display the welcome message"""
-    os_issue = ''.join(read_file('/etc/issue')).strip()
-    os_name = re.sub(r'\\[a-zA-Z]', '', os_issue).strip()
+    os_release = None
+    os_name = None
+    try:
+        _filter = filter(lambda x: x, _strip_list(read_file('/etc/os-release') ) )
+        os_release = dict(map( lambda x: _strip_list(x.split('=') ), _filter) )
+        os_name = "%s %s" % (os_release['NAME'], colorize(os_release['VERSION'], GREEN1))
+    except:
+        pass
+    if not os_release:
+        os_issue = ''.join(read_file('/etc/issue')).strip()
+        os_name = re.sub(r'\\[a-zA-Z]', '', os_issue).strip()
     cmd = 'hostname -f' if FULL_HOSTNAME else 'hostname'
     host_name = ''.join(exec_cmd(cmd)).strip()
     values = colorize(host_name, TEXT_PRIMARY), colorize(os_name, TEXT_PRIMARY)
@@ -239,6 +283,14 @@ def display_info():
         key = (key + ':').ljust(max_length + 4, ' ')
         print " %s%s" % (colorize(key, TEXT_SECONDARY), value)
 
+def display_warnings():
+    """Display any warnings from the WARN_LOG"""
+    global WARN_LOG
+    global opts
+    if not opts.warn:
+        return
+    for warning in WARN_LOG:
+        print " - %s %s" % (colorize('WARNING:', WARNING), colorize(warning, RESET))
 
 ################################################################################
 ################################ Options parser ################################
@@ -324,6 +376,8 @@ units = si_unitize if (opts.prefix_mode == 'si') else iec_unitize
 ####################
 # Generate info list
 result_list = []
+
+WARN_LOG = []
 
 # Get last login
 try:
@@ -429,9 +483,8 @@ try:
                 'weight':   CPUUTIL_WEIGHT,
             }
         }
-        query = shell_escape(json.dumps(query))
-        command = 'echo %s | netcat localhost %s' % (query,STAT_PORT)
-        util_usage = ''.join(exec_cmd(command)).strip()
+        query = json.dumps(query)
+        util_usage = send_to_port(STAT_HOST, STAT_PORT, query).strip()
 
         # Load the JSON data
         data = json.loads(util_usage)
@@ -446,8 +499,8 @@ try:
     values = tuple(utils_text)
     message = "%s (1 minute) - %s (5 minutes) - %s (15 minutes)" % values
     info_list.append(('CPU utilization', message))
-except:
-    pass
+except Exception as ex:
+    WARN_LOG.append(extract_error())
 
 # Get CPU load
 try:
@@ -519,9 +572,8 @@ try:
             'weight':   NETTRAF_WEIGHT,
         }
     }
-    query = shell_escape(json.dumps(query))
-    command = 'echo %s | netcat localhost %s' % (query, STAT_PORT)
-    net_usage = ''.join(exec_cmd(command)).strip()
+    query = json.dumps(query)
+    net_usage = send_to_port(STAT_HOST, STAT_PORT, query).strip()
 
     # Load the JSON data
     data = json.loads(net_usage)
@@ -534,8 +586,8 @@ try:
     values = total_text,units(rx_avg, 'B/s'), units(tx_avg, 'B/s')
     message = "%s - %s down, %s up" % values
     info_list.append(('Network traffic', message))
-except:
-    pass
+except Exception as ex:
+    WARN_LOG.append(extract_error())
 
 # Get processes
 try:
@@ -555,4 +607,5 @@ display_upper_border()
 display_welcome()
 display_logo()
 display_info()
+display_warnings()
 display_lower_border()

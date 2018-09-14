@@ -1,0 +1,18 @@
+[Unit]
+Description=dsnet motd stat service
+After=sshd.service
+After=getty.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/lib/motd-generator
+User=motd
+Group=motd
+ExecStart=/usr/bin/motd_stat.py
+MemoryLimit=128M
+CPUQuota=20%
+
+[Install]
+WantedBy=multi-user.target
