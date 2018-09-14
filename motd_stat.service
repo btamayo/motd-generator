@@ -7,10 +7,12 @@ After=getty.target
 Type=simple
 Restart=always
 RestartSec=5
-User=centos
 WorkingDirectory=/var/lib/motd_gen
-User=motd_gen
+User=motd
+Group=motd
 ExecStart=/usr/bin/motd_stat.py
+MemoryHigh=100M
+CPUQuota=20%
 
 [Install]
 WantedBy=multi-user.target
