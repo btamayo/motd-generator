@@ -247,11 +247,22 @@ def display_lower_border():
     """Display the lower border"""
     display_border(LOWER_HALF_BLOCK)
 
+def _strip_list(l):
+    return map(lambda x: x.strip('\r\n\t "'), l)
 
 def display_welcome():
     """Display the welcome message"""
-    os_issue = ''.join(read_file('/etc/issue')).strip()
-    os_name = re.sub(r'\\[a-zA-Z]', '', os_issue).strip()
+    os_release = None
+    os_name = None
+    try:
+        _filter = filter(lambda x: x, _strip_list(read_file('/etc/os-release') ) )
+        os_release = dict(map( lambda x: _strip_list(x.split('=') ), _filter) )
+        os_name = "%s %s" % (os_release['NAME'], colorize(os_release['VERSION'], GREEN1))
+    except:
+        pass
+    if not os_release:
+        os_issue = ''.join(read_file('/etc/issue')).strip()
+        os_name = re.sub(r'\\[a-zA-Z]', '', os_issue).strip()
     cmd = 'hostname -f' if FULL_HOSTNAME else 'hostname'
     host_name = ''.join(exec_cmd(cmd)).strip()
     values = colorize(host_name, TEXT_PRIMARY), colorize(os_name, TEXT_PRIMARY)
