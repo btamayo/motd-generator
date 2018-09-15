@@ -95,5 +95,8 @@ userdel motd || :
 * Sat Sep 15 2018 Billy Holmes <billy@gonoph.net> 1.0.2-20180915
 - new package built with tito
 
+* Sat Sep 15 2018 Billy Holmes <billy@gonoph.net> 1.0.2-20180915
+- new package built with tito
+
 * Fri Sep 14 2018 Billy Holmes <billy@gonoph.net> - 1.0.0-1
 - Initial release
