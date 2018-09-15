@@ -5,5 +5,5 @@ rpm_task:
     memory: 500Mi
   epel_script: yum install -y epel-release
   tito_script: yum install -y tito
-  rpm_script: tito build --rpm --offline
-  srpm_script: tito build --srpm --offline
+  rpm_script: tito build --rpm --offline --test
+  srpm_script: tito build --srpm --offline --test
