@@ -7,7 +7,7 @@ BuildArch:	noarch
 
 License:	Unknown
 URL:		https://github.com/gonoph/motd-generator
-Source0:	https://github.com/gonoph/motd-generator/archive/systemd.tar.gz
+Source0:	https://github.com/gonoph/motd-generator/archive/%{name}-%{version}.tar.gz
 
 Requires:	systemd
 Requires:	python
