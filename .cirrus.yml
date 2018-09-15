@@ -1,0 +1,9 @@
+rpm_task:
+  container:
+    image: centos:7
+    cpu: 1
+    memory: 500Mi
+  epel_script: yum install -y epel-release
+  tito_script: yum install -y tito
+  rpm_script: tito build --rpm --offline --test
+  srpm_script: tito build --srpm --offline --test
